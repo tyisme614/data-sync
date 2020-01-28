@@ -37,6 +37,19 @@ export default (appInfo: EggAppInfo) => {
     clientSecret: 'YOUR CLIENT SECRET',
   };
 
+  //added by Yuan
+  //Gaode Map API Key
+    config.gaode = {
+      api_key: 'YOUR GAODE API_KEY'
+
+    }
+
+    //Baidu Map API Key
+    config.baidu = {
+      ak: 'YOUR BAIDU AK',
+      sk: 'YOUR BAIDU SK, this is only needed when your authentication type is verifying SN code'
+    }
+
   // the return config will combines to EggAppConfig
   return {
     ...config,
