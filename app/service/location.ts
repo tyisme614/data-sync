@@ -24,15 +24,12 @@ export default class LocationService extends Service {
 
       const raw_data = response.data;
       if (raw_data.status === '1') {
-        let json;
         try {
-          json = response.data;
-
           const code = 200;
-          const count = json.count;
+          const count = raw_data.count;
           const list = new Array<PlaceInfo>();// contains matched results
-          for (let i = 0; i < json.count; i++) {
-            const geo = json.geocodes[i];
+          for (let i = 0; i < raw_data.count; i++) {
+            const geo = raw_data.geocodes[i];
             const _province = geo.province;
             const _city = geo.city;
             const _district = geo.district;
@@ -60,7 +57,7 @@ export default class LocationService extends Service {
               // cache data
               // note: only the first data in the list would be cached
               if (this.debug) { console.log('addr_obj=' + JSON.stringify(addr_obj)); }
-              this.dataCache.set(addr_obj.name, place_info);
+              this.dataCache.set(_province + _city + addr_obj.name, place_info);
             }
           }
           const result = {
@@ -74,13 +71,11 @@ export default class LocationService extends Service {
           logger.error('encountered error while parsing response data, msg:' + e.toString());
           return null;
         }
-
-
       } else {
 
         const result = {
           code: 500,
-          msg: 'encountered error while requesting geocoding service from Gaode Map Engine',
+          msg: 'encountered error while requesting geocoding service from Gaode Map Engine, msg:' + response.toString(),
         };
         return result;
       }
