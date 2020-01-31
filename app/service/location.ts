@@ -11,7 +11,7 @@ export default class LocationService extends Service {
 
   /**
    * convert address to coordinate via Gaode geocode api
-   * @param address
+   * @param address readable address
    * @return {
    *            code: 200(OK)/500(error)
    *            count: number of converted coordinates
@@ -98,7 +98,7 @@ export default class LocationService extends Service {
   /**
    * convert address to coordinate via baidu geocoding api
    * @param address
-   * @param use_baidu_coord: use baidu lat_lon coordinate(bd09ll) or use normal coordinate(gcj02ll). true by default
+   * @param use_baidu_coord use baidu lat_lon coordinate(bd09ll) or use normal coordinate(gcj02ll). true by default
    * @return
    * {
    *            code: 200(OK)/500(error)
@@ -179,8 +179,8 @@ export default class LocationService extends Service {
 
   /**
    * get location object from cache
-   * @param addr
-   * @return {PlaceInfo}
+   * @param addr readable address
+   * @return {PlaceInfo} contains address, province, city, district, latitude, longitude
    */
   public getLocationFromCache(addr) {
     if (this.dataCache.has(addr)) {
