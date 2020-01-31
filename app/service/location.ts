@@ -7,7 +7,7 @@ export default class LocationService extends Service {
   private dataCache = new Map();
   private STRING_SIMILARITY_LEVEL = 0.75;
   private MAXIMUM_ADDR_LENGTH = 84;
-  private debug = true;
+  private debug = false;
 
   /**
    * convert address to coordinate via Gaode geocode api

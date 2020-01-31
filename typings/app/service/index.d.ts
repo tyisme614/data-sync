@@ -7,6 +7,7 @@ import ExportDataFormat from '../../../app/service/data_format';
 import ExportGithub from '../../../app/service/github';
 import ExportLocation from '../../../app/service/location';
 import ExportShimo from '../../../app/service/shimo';
+import ExportUtility from '../../../app/service/utility';
 
 declare module 'egg' {
   interface IService {
@@ -15,5 +16,6 @@ declare module 'egg' {
     github: ExportGithub;
     location: ExportLocation;
     shimo: ExportShimo;
+    utility: ExportUtility;
   }
 }

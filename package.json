@@ -29,6 +29,7 @@
     "moment": "^2.24.0",
     "parse-address-cn": "^1.0.4",
     "request": "^2.88.0",
+    "request-promise": "^4.2.5",
     "shimo-sheet2json": "^1.0.8"
   },
   "devDependencies": {
