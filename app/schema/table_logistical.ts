@@ -1,23 +1,27 @@
-import { TableConfig } from './table';
+import { TableConfig, getCellByName, getCellByType } from './table';
 
 const logisticalTable: TableConfig = {
-  name: '物流',
   guid: 'RTHXp3ghtKXY3GcC',
   sheets: [ '工作表1' ],
-  skipHead: 2,
-  columns: [{
-    name: '物流名称',
-  }, {
-    name: '物流区域',
-  }, {
-    name: '联系方式',
-  }, {
-    name: '发布链接',
-  }, {
-    name: '备注',
-  }, {
-    name: '审核状态',
-  }],
+  skipRows: 4,
+  skipColumns: 1,
+  nameRow: 2,
+  typeRow: 3,
+  defaultValueRow: 4,
+  maxColumn: 'H',
+  getFilePath: () => 'logistical/data.json',
+  feParser: (data: any[]) => {
+    return data.map(row => {
+      return {
+        name: getCellByName(row, '物流名称').value,
+        area: getCellByName(row, '物流区域').value,
+        contacts: getCellByType(row, 'contact').value,
+        date: getCellByType(row, 'date').value,
+        url: getCellByType(row, 'url').value,
+        remark: getCellByName(row, '备注').value,
+      };
+    });
+  },
 };
 
 export default logisticalTable;

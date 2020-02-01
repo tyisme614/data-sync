@@ -1,72 +1,40 @@
-import { TableConfig } from './table';
+import { TableConfig, getCellByName, getAllCellsByType, getCellByType } from './table';
+import pinyin = require('pinyin');
 
 const hospitalTable: TableConfig = {
-  name: '医院',
   guid: 'k399pHyt6HKvW6xR',
-  sheets: [ '武汉市', '黄石市', '十堰市', '宜昌市', '襄阳市', '鄂州市', '荆门市', '孝感市', '荆州市', '黄冈市', '咸宁市',
-    '随州市', '施恩土家族苗族自治州' ],
-  skipHead: 5,
-  columns: [{
-    name: '区县',
-  }, {
-    name: '医院名称',
-  }, {
-    name: '普通医用口罩',
-  }, {
-    name: '医用外科口罩',
-  }, {
-    name: '医用防护口罩 | N95口罩',
-  }, {
-    name: '防冲击眼罩/护目镜/防护眼镜',
-  }, {
-    name: '防护面罩',
-  }, {
-    name: '防护帽/医用帽/圆帽',
-  }, {
-    name: '隔离衣',
-  }, {
-    name: '防护服',
-  }, {
-    name: '手术衣',
-  }, {
-    name: '乳胶手套',
-  }, {
-    name: '长筒胶鞋/防污染靴',
-  }, {
-    name: '防污染鞋套',
-  }, {
-    name: '防污染靴套',
-  }, {
-    name: '84消毒液',
-  }, {
-    name: '过氧乙酸',
-  }, {
-    name: '75%酒精',
-  }, {
-    name: '手部皮肤消毒液',
-  }, {
-    name: '活力碘',
-  }, {
-    name: '床罩',
-  }, {
-    name: '医用面罩式雾化器',
-  }, {
-    name: '测体温设备',
-  }, {
-    name: '空气消毒设备',
-  }, {
-    name: '医用紫外线消毒车',
-  }, {
-    name: '官方链接',
-  }, {
-    name: '医院地址',
-  }, {
-    name: '联系方式',
-  }, {
-    name: '备注',
-  }, {
-    name: '审核状态',
-  }],
+  sheets: [ '武汉市', '黄石市', '十堰市', '宜昌市', '襄阳市', '鄂州市', '荆门市', '孝感市', '荆州市', '黄冈市', '咸宁市', '随州市', '施恩土家族苗族自治州', '仙桃市', '潜江市', '天门市' ],
+  skipRows: 6,
+  skipColumns: 1,
+  nameRow: 3,
+  typeRow: 4,
+  defaultValueRow: 5,
+  maxColumn: 'AE',
+  getFilePath: (sheet: string) => `hospital/hubei/${pinyin(sheet, { style: pinyin.STYLE_NORMAL }).join('')}.json`,
+  feParser: (data: any[], sheet: string) => {
+    return data.map(row => {
+      try {
+        return {
+          province: '湖北',
+          city: sheet,
+          district: getCellByName(row, '区县').value,
+          name: getCellByName(row, '医院名称').value,
+          supplies: getAllCellsByType(row, 'supply').filter((cell: any) => cell.value !== 0).map((cell: any) => {
+            return {
+              key: cell.key,
+              value: cell.value,
+              specification: cell.specification,
+            };
+          }),
+          url: getCellByType(row, 'url').value,
+          remark: getCellByName(row, '备注').value,
+          contacts: getCellByType(row, 'contact').value,
+        };
+      } catch {
+        return null;
+      }
+    }).filter(item => item !== null);
+  },
 };
 
 export default hospitalTable;
