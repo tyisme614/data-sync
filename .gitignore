@@ -4,7 +4,6 @@ node_modules/
 coverage/
 .idea/
 run/
-logs/
 .DS_Store
 .vscode
 *.swp
@@ -22,3 +21,6 @@ config/**/*.map
 
 !config/config.default.ts
 config/config.*.ts
+
+!lint-staged.config.js
+!tools/commitlint-config.js

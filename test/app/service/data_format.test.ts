@@ -73,7 +73,8 @@ describe('test/app/service/data_format.test.js', () => {
         {
           name: '张三',
           tel: '139',
-        }, {
+        },
+        {
           name: '李四',
           tel: '021-32',
         },
@@ -90,7 +91,8 @@ describe('test/app/service/data_format.test.js', () => {
         {
           name: '张三',
           tel: '139',
-        }, {
+        },
+        {
           name: '',
           tel: '021-32',
         },
@@ -99,6 +101,14 @@ describe('test/app/service/data_format.test.js', () => {
         value: valueStr,
       });
       assert.deepEqual(v.value, check);
+    });
+
+    it('a real case', () => {
+      const valueStr = '王平： 13997712859 | 申西华：13872631977 | 廖勇：13986828368 | 代金枝： 13972001441';
+      const v = DataFormatService.contactFormatter({
+        value: valueStr,
+      });
+      console.log(v);
     });
 
   });
