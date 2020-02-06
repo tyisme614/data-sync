@@ -24,7 +24,7 @@ const docHotelTable: TableConfig = {
           address: getCellByName(row, '酒店地址').value,
           maximum_rooms: getCellByName(row, '酒店可提供房间数').value,
           maximum_guests: getCellByName(row, '酒店可接待人数').value,
-          contacts: getCellByName(row, '联系人').value + ':' + getCellByName(row, '联系方式'),
+          contacts: getCellByName(row, '联系人').value + ': ' + getCellByName(row, '联系方式'),
           url: getCellByName(row, '信息发布源链接').value,
           remark: getCellByName(row, '备注').value,
         };
