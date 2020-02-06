@@ -22,7 +22,7 @@
     "clean": "ets clean"
   },
   "dependencies": {
-    "@octokit/rest": "^16.38.3",
+    "@octokit/rest": "^16.43.1",
     "axios": "^0.19.2",
     "egg": "^2.6.1",
     "egg-scripts": "^2.6.0",
@@ -31,10 +31,11 @@
     "moment": "^2.24.0",
     "parse-address-cn": "^1.0.4",
     "pinyin": "^2.9.0",
+    "qiniu": "^7.3.0",
     "querystring": "^0.2.0",
     "request": "^2.88.0",
     "request-promise": "^4.2.5",
-    "shimo-sheet2json": "^1.0.8"
+    "requestretry": "^4.1.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^8.3.5",
@@ -50,7 +51,7 @@
     "eslint": "^6.8.0",
     "eslint-config-egg": "^8.0.0",
     "husky": "3.1.0",
-    "lint-staged": "^7.2.0",
+    "lint-staged": "^9.4.2",
     "tslib": "^1.9.0",
     "tslint": "^6.0.0",
     "tslint-config-egg": "^1.0.0",

@@ -1,21 +1,24 @@
 import { Service } from 'egg';
-import * as request from 'request';
+import * as request from 'requestretry';
 import { TableConfig, defaultColumnType, PreTableConfig, RowData, SheetData, TableData } from '../schema/table';
 
 export default class ShimoService extends Service {
 
   private baseUrl = 'https://api.shimo.im';
-  private rowBatch = 20;
+  private rowBatch = 100;
+  private maxRetryTime = 5;
   private token: string;
 
   public async update() {
     const { logger } = this;
     const { config } = this.ctx.app;
     const tables: TableConfig[] = config.shimo.tables;
+    this.token = await this.getToken();
     const updateFunc = async (path: string, data: any) => {
       logger.info(`Start to update ${path}`);
       await this.ctx.service.github.updateRepo(path, data);
       await this.ctx.service.gitee.updateRepo(path, data);
+      await this.ctx.service.qiniu.uploadFile(path, data);
     };
     const indexFiles = {};
     for (const table of tables) {
@@ -40,7 +43,7 @@ export default class ShimoService extends Service {
         logger.error(e);
       }
     }
-    await this.ctx.service.github.updateRepo('data/index.json', JSON.stringify(indexFiles));
+    await updateFunc('data/index.json', JSON.stringify(indexFiles));
   }
 
   private async getToken(): Promise<string> {
@@ -92,10 +95,25 @@ export default class ShimoService extends Service {
       preTableData = await this.getTableData(table.preTable);
     }
 
+    logger.info(`Start to get data of table ${table.guid}.`);
+
+    const minCol = this.getColumnName(table.skipColumns + 1);
+    const maxCol = table.maxColumn;
+    const firstSheet = table.sheets[0];
+    const names = (await this.getSheetContentRange(this.token, table.guid,
+      `${firstSheet}!${minCol}${table.nameRow}:${maxCol}${table.nameRow}`))[0];
+    const types = (await this.getSheetContentRange(this.token, table.guid,
+      `${firstSheet}!${minCol}${table.typeRow}:${maxCol}${table.typeRow}`))[0];
+    const defaultValues = (await this.getSheetContentRange(this.token, table.guid,
+      `${firstSheet}!${minCol}${table.defaultValueRow}:${maxCol}${table.defaultValueRow}`))[0];
+
+    logger.info('Get names, types, values done.');
+
     for (const sheet of table.sheets) {
       try {
-        const sheetData = await this.getSheetContent(table, sheet);
+        const sheetData = await this.getSheetContent(table, sheet, names, types, defaultValues);
         tableData.data.push(sheetData);
+        logger.info(`Get table ${table.guid} sheet ${sheet} done.`);
       } catch (e) {
         logger.error(e);
       }
@@ -138,11 +156,7 @@ export default class ShimoService extends Service {
     return tableData;
   }
 
-  private async getSheetContent(tableConfig: PreTableConfig, sheetName: string): Promise<SheetData> {
-
-    if (!this.token) {
-      this.token = await this.getToken();
-    }
+  private async getSheetContent(tableConfig: PreTableConfig, sheetName: string, names: any[], types: any[], defaultValues: any[]): Promise<SheetData> {
 
     let range = '';
     let row = tableConfig.skipRows + 1;
@@ -150,12 +164,6 @@ export default class ShimoService extends Service {
     const maxCol = tableConfig.maxColumn;
     let done = false;
 
-    const names = (await this.getFileContentRange(this.token, tableConfig.guid,
-      `${sheetName}!${minCol}${tableConfig.nameRow}:${maxCol}${tableConfig.nameRow}`))[0];
-    const types = (await this.getFileContentRange(this.token, tableConfig.guid,
-      `${sheetName}!${minCol}${tableConfig.typeRow}:${maxCol}${tableConfig.typeRow}`))[0];
-    const defaultValues = (await this.getFileContentRange(this.token, tableConfig.guid,
-      `${sheetName}!${minCol}${tableConfig.defaultValueRow}:${maxCol}${tableConfig.defaultValueRow}`))[0];
     const res: SheetData = {
       sheetName,
       data: [],
@@ -163,7 +171,7 @@ export default class ShimoService extends Service {
     while (!done) {
       range = `${sheetName}!${minCol}${row}:${maxCol}${row + this.rowBatch}`;
       row += this.rowBatch + 1;
-      const values = await this.getFileContentRange(this.token, tableConfig.guid, range);
+      const values = await this.getSheetContentRange(this.token, tableConfig.guid, range);
       for (const row of values) {
         if (!row.some(v => v !== null)) {
           // blank row, all data get done
@@ -195,7 +203,7 @@ export default class ShimoService extends Service {
     return numToChar(num / 26) + numToChar(num); // 1 -> A, 2 -> B support 26*26
   }
 
-  private async getFileContentRange(accessToken: string, guid: string, range: string): Promise<any[][]> {
+  private async getSheetContentRange(accessToken: string, guid: string, range: string): Promise<any[][]> {
     return new Promise((resolve, reject) => {
       const options = {
         method: 'GET',
@@ -206,10 +214,18 @@ export default class ShimoService extends Service {
         headers: {
           Authorization: `bearer ${accessToken}`,
         },
+        maxAttempts: this.maxRetryTime,
+        retryDelay: 5000,
+        retryStrategy: (err, _, body) => {
+          return (err && err.message === 'ESOCKETTIMEDOUT') ||
+            !body ||
+            !(JSON.parse(body)).values;
+        },
       };
       request(options, (err: any, _: any, body: string) => {
         if (err) {
           reject(err);
+          return;
         }
         try {
           const data = JSON.parse(body);
