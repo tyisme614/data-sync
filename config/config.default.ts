@@ -6,6 +6,7 @@ import donationTable from '../app/schema/table_donation';
 import clinicTable from '../app/schema/table_clinic';
 import enterpriseDonationTable from '../app/schema/table_enterprise_donation';
 import factoryTable from '../app/schema/table_factory';
+import doctorHotelTable from '../app/schema/table_doctor_hotel';
 import isaaclinApi from '../app/external_api/api_isaaclin';
 
 export default (appInfo: EggAppInfo) => {
@@ -62,6 +63,7 @@ export default (appInfo: EggAppInfo) => {
       clinicTable,
       enterpriseDonationTable,
       factoryTable,
+      doctorHotelTable,
     ],
   };
 
@@ -89,16 +91,6 @@ export default (appInfo: EggAppInfo) => {
     api_key: 'YOUR BAIDU MAP API KEY',
   };
 
-  // added by Yuan
-  // Gaode Map API Key
-  config.gaode = {
-    api_key: 'YOUR GAODE MAP API KEY',
-  };
-
-  // Baidu Map API Key
-  config.baidu = {
-    api_key: 'YOUR BAIDU MAP API KEY',
-  };
 
   // the return config will combines to EggAppConfig
   return {
