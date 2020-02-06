@@ -218,7 +218,7 @@ export default class LocationService extends Service {
   }
 
   public testPlugin() {
-    console.log('calling from location.ts -->' + this.ctx.datacache.getDatabyKey('test'));
+    console.log('calling from location.ts -->' + this.ctx.app.datacache.getDatabyKey('test'));
   }
 
 }
