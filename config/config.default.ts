@@ -91,7 +91,6 @@ export default (appInfo: EggAppInfo) => {
     api_key: 'YOUR BAIDU MAP API KEY',
   };
 
-
   // the return config will combines to EggAppConfig
   return {
     ...config,
