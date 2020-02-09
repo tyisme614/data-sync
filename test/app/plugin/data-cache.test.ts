@@ -1,4 +1,4 @@
-console.log('nothing to test');
+// console.log('nothing to test');
 // import { Context } from 'egg';
 // import { app } from 'egg-mock/bootstrap';
 //
