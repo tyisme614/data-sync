@@ -203,6 +203,7 @@ export default class LocationService extends Service {
 
     return null;
 
+
   }
 
   private compareAddressStrings(str1, str2) {
@@ -215,10 +216,6 @@ export default class LocationService extends Service {
     }
     return false;
 
-  }
-
-  public testPlugin() {
-    console.log('calling from location.ts -->' + this.ctx.app.datacache.getDatabyKey('test'));
   }
 
 }

@@ -4,7 +4,6 @@ import { app } from 'egg-mock/bootstrap';
 describe('test/app/service/location.test.js', () => {
   let ctx: Context;
 
-
   before(async () => {
     ctx = app.mockContext();
   });
@@ -22,6 +21,5 @@ describe('test/app/service/location.test.js', () => {
     // console.log(JSON.stringify(result2));
     // console.log(JSON.stringify(result3));
     ctx.logger.info('nothing to test');
-    ctx.service.location.testPlugin();
   });
 });

@@ -1,84 +1,49 @@
 import { Service } from 'egg';
-import * as request from 'request';
-import { TableConfig, defaultColumnType } from '../schema/table';
-import { GiteeClient } from '../component/gitee-client';
+import * as request from 'requestretry';
+import { TableConfig, defaultColumnType, PreTableConfig, RowData, SheetData, TableData } from '../schema/table';
 
 export default class ShimoService extends Service {
 
   private baseUrl = 'https://api.shimo.im';
-  private rowBatch = 20;
+  private rowBatch = 100;
+  private maxRetryTime = 5;
   private token: string;
 
-  private shimoDataTemp: Map<string, any>;
-
   public async update() {
-    this.shimoDataTemp = new Map<string, any>();
-    await this.updateGithub();
-    await this.updateGitee();
-  }
-
-  public async updateGithub() {
     const { logger } = this;
     const { config } = this.ctx.app;
-    const tables: TableConfig[] = config.github.tables;
-
+    const tables: TableConfig[] = config.shimo.tables;
+    this.token = await this.getToken();
+    const updateFunc = async (path: string, data: any) => {
+      logger.info(`Start to update ${path}`);
+      await this.ctx.service.github.updateRepo(path, data);
+      await this.ctx.service.gitee.updateRepo(path, data);
+      await this.ctx.service.qiniu.uploadFile(path, data);
+    };
+    const indexFiles = {};
     for (const table of tables) {
-      for (const sheet of table.sheets) {
-        try {
-          logger.info(`Gonna get data from shimo, table=${table.name}, sheet=${sheet}`);
-          let data = await this.getFileData(table, sheet);
-          data = await this.ctx.service.dataFormat.format(data, table);
-          this.shimoDataTemp.set(`${table.name}/${sheet}`, data);
+      if (!indexFiles[table.indexKey]) {
+        indexFiles[table.indexKey] = [];
+      }
+      const tableData = await this.getTableData(table);
+      try {
+        for (const sheetData of tableData.data) {
+          const data = await this.ctx.service.dataFormat.format(sheetData.data, table);
+          const filePath = table.getFilePath(sheetData.sheetName);
           if (data.length > 0) {
             // only update if have data
-            await this.ctx.service.github.updateRepo(`data/json/${table.name}/${sheet}.json`, JSON.stringify(data));
+            await updateFunc(`data/json/${filePath}`, JSON.stringify(data));
+            if (table.feParser) {
+              await updateFunc(`data/fe/${filePath}`, JSON.stringify(table.feParser(data, sheetData.sheetName)));
+            }
           }
-        } catch (e) {
-          logger.error(e);
+          indexFiles[table.indexKey].push(filePath);
         }
+      } catch (e) {
+        logger.error(e);
       }
     }
-  }
-
-  public async updateGitee() {
-    const { logger } = this;
-    const { config } = this.ctx.app;
-    const tables: TableConfig[] = config.gitee.tables;
-    const token = await GiteeClient.getToken(config.gitee.baseUrl, config.gitee.auth);
-    if (!token) {
-      logger.error('Get gitee token error!');
-      return;
-    }
-
-    for (const table of tables) {
-      for (const sheet of table.sheets) {
-        try {
-          logger.info(`Gonna get data from shimo for gitee, table=${table.name}, sheet=${sheet}`);
-          let data = this.shimoDataTemp.get(`${table.name}/${sheet}`);
-          if (data === undefined) {
-            data = await this.getFileData(table, sheet);
-            data = await this.ctx.service.dataFormat.format(data, table);
-            this.shimoDataTemp.set(`${table.name}/${sheet}`, data);
-          }
-          if (data.length > 0) {
-            // only update if have data
-            await this.ctx.service.gitee.updateRepo(`data/json/${table.name}/${sheet}.json`, JSON.stringify(data), token);
-          }
-        } catch (e) {
-          logger.error(e);
-        }
-        break;
-      }
-      break;
-    }
-  }
-
-  private async getFileData(tableConfig: TableConfig, sheetName: string): Promise<any> {
-    if (!this.token) {
-      this.token = await this.getToken();
-    }
-    const fileContent = await this.getFileContent(this.token, tableConfig, sheetName);
-    return fileContent;
+    await updateFunc('data/index.json', JSON.stringify(indexFiles));
   }
 
   private async getToken(): Promise<string> {
@@ -115,48 +80,130 @@ export default class ShimoService extends Service {
     });
   }
 
-  private async getFileContent(accessToken: string, tableConfig: TableConfig, sheetName: string): Promise<any> {
-    let row = tableConfig.skipHead + 1;
+  private async getTableData(table: PreTableConfig): Promise<TableData> {
+
+    const { logger } = this.ctx;
+
+    const tableData: TableData = {
+      guid: table.guid,
+      data: [],
+    };
+    let preTableData: TableData | null = null;
+
+    if (table.preTable) {
+      // get pre table data if exists and flatten
+      preTableData = await this.getTableData(table.preTable);
+    }
+
+    logger.info(`Start to get data of table ${table.guid}.`);
+
+    const minCol = this.getColumnName(table.skipColumns + 1);
+    const maxCol = table.maxColumn;
+    const firstSheet = table.sheets[0];
+    const names = (await this.getSheetContentRange(this.token, table.guid,
+      `${firstSheet}!${minCol}${table.nameRow}:${maxCol}${table.nameRow}`))[0];
+    const types = (await this.getSheetContentRange(this.token, table.guid,
+      `${firstSheet}!${minCol}${table.typeRow}:${maxCol}${table.typeRow}`))[0];
+    const defaultValues = (await this.getSheetContentRange(this.token, table.guid,
+      `${firstSheet}!${minCol}${table.defaultValueRow}:${maxCol}${table.defaultValueRow}`))[0];
+
+    logger.info('Get names, types, values done.');
+
+    for (const sheet of table.sheets) {
+      try {
+        const sheetData = await this.getSheetContent(table, sheet, names, types, defaultValues);
+        tableData.data.push(sheetData);
+        logger.info(`Get table ${table.guid} sheet ${sheet} done.`);
+      } catch (e) {
+        logger.error(e);
+      }
+    }
+
+    if (table.preTableDetect !== undefined && preTableData) {
+      const preDataArray: RowData[] = [];
+      preTableData.data.forEach(sheet => {
+        preDataArray.push(...sheet.data);
+      });
+      let hitSheet = false;
+      tableData.data.forEach(sheet => {
+        if (hitSheet) return;
+        sheet.data.forEach((row, rowIndex, sheet) => {
+          // replace with pre table data
+          if (table.preTableDetect !== undefined) {
+            const pre = preDataArray.find(r => {
+              if (table.preTableDetect) {
+                const preItem = table.preTableDetect(r);
+                const myItem = table.preTableDetect(row);
+                if (!preItem || !myItem) return false;
+                return preItem.value === myItem.value;
+              }
+              return false;
+            });
+            if (pre) {
+              logger.info(`Gonna merge: ${table.preTableDetect(row).value}`);
+              sheet[rowIndex] = pre;
+              preDataArray.splice(preDataArray.indexOf(pre), 1);
+              hitSheet = true;
+            }
+          }
+        });
+        if (hitSheet) {
+          sheet.data.push(...preDataArray);
+        }
+      });
+    }
+
+    return tableData;
+  }
+
+  private async getSheetContent(tableConfig: PreTableConfig, sheetName: string, names: any[], types: any[], defaultValues: any[]): Promise<SheetData> {
+
     let range = '';
-    const maxCol = this.getMaxColumn(tableConfig.columns.length);
+    let row = tableConfig.skipRows + 1;
+    const minCol = this.getColumnName(tableConfig.skipColumns + 1);
+    const maxCol = tableConfig.maxColumn;
     let done = false;
-    const res: any[] = [];
+
+    const res: SheetData = {
+      sheetName,
+      data: [],
+    };
     while (!done) {
-      range = `${sheetName}!A${row}:${maxCol}${row + this.rowBatch}`;
-      row += this.rowBatch;
-      const values = await this.getFileContentRange(accessToken, tableConfig.guid, range);
+      range = `${sheetName}!${minCol}${row}:${maxCol}${row + this.rowBatch}`;
+      row += this.rowBatch + 1;
+      const values = await this.getSheetContentRange(this.token, tableConfig.guid, range);
       for (const row of values) {
         if (!row.some(v => v !== null)) {
           // blank row, all data get done
           done = true;
           break;
         }
-        const rowData: any[] = [];
+        const rowData: RowData = [];
         row.forEach((v, i) => {
           rowData.push({
-            key: tableConfig.columns[i].name,
-            value: v,
-            type: tableConfig.columns[i].type ?? defaultColumnType,
+            key: names[i],
+            value: v !== null ? v : defaultValues[i],
+            type: types[i] ?? defaultColumnType,
           });
         });
-        res.push(rowData);
+        res.data.push(rowData);
       }
     }
     return res;
   }
 
-  private getMaxColumn(num: number): string {
+  private getColumnName(num: number): string {
     const numToChar = (n: number): string => {
       n = Math.floor(n % 26);
       if (n === 0) {
         return '';
       }
-      return String.fromCharCode(65 + n - 1);
+      return String.fromCharCode(n + 64);
     };
     return numToChar(num / 26) + numToChar(num); // 1 -> A, 2 -> B support 26*26
   }
 
-  private async getFileContentRange(accessToken: string, guid: string, range: string): Promise<any[][]> {
+  private async getSheetContentRange(accessToken: string, guid: string, range: string): Promise<any[][]> {
     return new Promise((resolve, reject) => {
       const options = {
         method: 'GET',
@@ -167,10 +214,18 @@ export default class ShimoService extends Service {
         headers: {
           Authorization: `bearer ${accessToken}`,
         },
+        maxAttempts: this.maxRetryTime,
+        retryDelay: 5000,
+        retryStrategy: (err, _, body) => {
+          return (err && err.message === 'ESOCKETTIMEDOUT') ||
+            !body ||
+            !(JSON.parse(body)).values;
+        },
       };
       request(options, (err: any, _: any, body: string) => {
         if (err) {
           reject(err);
+          return;
         }
         try {
           const data = JSON.parse(body);

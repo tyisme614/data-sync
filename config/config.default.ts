@@ -1,9 +1,12 @@
 import { EggAppConfig, EggAppInfo, PowerPartial } from 'egg';
 import hospitalTable from '../app/schema/table_hospital';
+import travelHotelTable from '../app/schema/table_travel_hotel';
 import logisticalTable from '../app/schema/table_logistical';
-import hotelTable from '../app/schema/table_hotel';
-import clinicTable from '../app/schema/table_clinic';
 import donationTable from '../app/schema/table_donation';
+import clinicTable from '../app/schema/table_clinic';
+import enterpriseDonationTable from '../app/schema/table_enterprise_donation';
+import factoryTable from '../app/schema/table_factory';
+import isaaclinApi from '../app/external_api/api_isaaclin';
 
 export default (appInfo: EggAppInfo) => {
   const config = {} as PowerPartial<EggAppConfig>;
@@ -23,23 +26,16 @@ export default (appInfo: EggAppInfo) => {
     },
   };
 
-  const githubConfig = {
+  config.github = {
+    enable: false,
     token: 'YOUR TOKEN',
     owner: 'wuhan2020',
     repo: 'wuhan2020-test',
     message: 'data-sync',
-    tables: [
-      hospitalTable,
-      logisticalTable,
-      hotelTable,
-      clinicTable,
-      donationTable,
-    ],
   };
 
-  config.github = githubConfig;
-
   config.gitee = {
+    enable: false,
     baseUrl: 'https://gitee.com',
     auth: {
 
@@ -52,7 +48,6 @@ export default (appInfo: EggAppInfo) => {
     owner: 'Open-Xlab',
     repo: 'wuhan2020',
     message: 'data-sync',
-    tables: [ hospitalTable, logisticalTable, hotelTable, clinicTable, donationTable ],
   };
 
   config.shimo = {
@@ -60,6 +55,39 @@ export default (appInfo: EggAppInfo) => {
     password: 'YOUR PASSWORD',
     clientId: 'YOUR CLIENT ID',
     clientSecret: 'YOUR CLIENT SECRET',
+    tables: [
+      hospitalTable,
+      travelHotelTable,
+      logisticalTable,
+      donationTable,
+      clinicTable,
+      enterpriseDonationTable,
+      factoryTable,
+    ],
+  };
+
+  config.qiniu = {
+    enable: false,
+    accessKey: 'YOUR ACCESSKEY',
+    secretKey: 'YOUR SECRETKEY',
+    bucket: 'BUCKET',
+  };
+
+  config.api = {
+    apis: [
+      isaaclinApi,
+    ],
+  };
+
+  // added by Yuan
+  // Gaode Map API Key
+  config.gaode = {
+    api_key: 'YOUR GAODE MAP API KEY',
+  };
+
+  // Baidu Map API Key
+  config.baidu = {
+    api_key: 'YOUR BAIDU MAP API KEY',
   };
 
   // added by Yuan
