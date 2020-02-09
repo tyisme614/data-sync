@@ -12,6 +12,7 @@ import isaaclinApi from '../app/external_api/api_isaaclin';
 export default (appInfo: EggAppInfo) => {
   const config = {} as PowerPartial<EggAppConfig>;
 
+
   // override config from framework / plugin
   // use for cookie sign key, should change to your own and keep security
   config.keys = appInfo.name + '_1580105641943_6222';
@@ -90,10 +91,16 @@ export default (appInfo: EggAppInfo) => {
   config.baidu = {
     api_key: 'YOUR BAIDU MAP API KEY',
   };
-
+  
+   config.datacache = {
+    client: {},
+    app: true,
+    agent: false,
+  };
 
   // the return config will combines to EggAppConfig
   return {
     ...config,
   };
 };
+
