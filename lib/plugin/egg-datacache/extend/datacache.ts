@@ -10,13 +10,5 @@ function initialize() {
 }
 
 export default function(app) {
-  // app.beforeStart(async() => {
-  //   console.log('initialize plugin...');
-  //   _Cache_Map = new Map();
-  //   _Cache_Map.set('info', 'this map is used for caching data for all components');
-  // });
-  console.log('app baseDir of plugin egg-datacache.ts --> ' + app.type);
   app.addSingleton('datacache', initialize);
-  const str = app.datacache.getDatabyKey('test');
-  console.log('output from plugin app.ts-->' + str);
 }

@@ -101,7 +101,7 @@ export default (appInfo: EggAppInfo) => {
     api_key: 'YOUR BAIDU MAP API KEY',
   };
 
-  const datacache = {
+  config.datacache = {
     client: {},
     app: true,
     agent: false,
@@ -110,7 +110,6 @@ export default (appInfo: EggAppInfo) => {
   // the return config will combines to EggAppConfig
   return {
     ...config,
-    ...datacache,
   };
 };
 

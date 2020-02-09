@@ -6,7 +6,7 @@ export class Cache {
     this._container = new Map();
   }
 
-  public getDatabyKey(k) {
+  public getDataByKey(k) {
     return this._container.get(k);
   }
 
@@ -17,4 +17,13 @@ export class Cache {
   public getContainer() {
     return this._container;
   }
+
+  public hasKey(k) {
+    return this._container.has(k);
+  }
+
+  public getKeys() {
+    return this._container.keys();
+  }
+
 }

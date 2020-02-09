@@ -20,6 +20,8 @@ describe('test/app/service/location.test.js', () => {
     // console.log(JSON.stringify(result1));
     // console.log(JSON.stringify(result2));
     // console.log(JSON.stringify(result3));
-    ctx.logger.info('nothing to test');
+    // ctx.logger.info('nothing to test');
+    const str = ctx.service.location.getLocationFromCache('test');
+    console.log('got data from service location in location.test.ts -->' + str);
   });
 });
