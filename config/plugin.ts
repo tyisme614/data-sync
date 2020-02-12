@@ -9,7 +9,7 @@ const plugin: EggPlugin = {
   },
 
   redis: {
-    enable: true,
+    enable: false,
     package: 'egg-redis',
   },
 
