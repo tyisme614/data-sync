@@ -8,6 +8,11 @@ const plugin: EggPlugin = {
     path: path.join(__dirname, '../lib/plugin/egg-datacache'),
   },
 
+  redis: {
+    enable: true,
+    package: 'egg-redis',
+  },
+
 };
 
 export default plugin;

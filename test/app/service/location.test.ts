@@ -20,5 +20,17 @@ describe('test/app/service/location.test.js', () => {
     // console.log(JSON.stringify(result2));
     // console.log(JSON.stringify(result3));
     ctx.logger.info('nothing to test');
+    // const info = {
+    //   addr: '北京市海淀区中关村南路124号',
+    //   province: '北京',
+    //   city: '北京市',
+    //   district: '海淀区',
+    //   longitude: '116.12345',
+    //   latitude: '39.12345',
+    // };
+    // const res = await ctx.app.redis.set(info.addr, JSON.stringify(info));
+    // console.log('operation result --> ' + res);
+    // const return_value = await ctx.service.location.getLocationFromRedis('北京市海淀区中关村南路124号', false);
+    // console.log('retrieved value from redis -->' + return_value);
   });
 });

@@ -205,6 +205,42 @@ export default class LocationService extends Service {
 
   }
 
+  /**
+   * get location object from redis
+   * @param addr readable address
+   * @param fuzzy_search use fuzzy searching or not
+   * @return {boolean}
+   */
+  public async getLocationFromRedis(addr, fuzzy_search) {
+    if (this.app.redis.exists(addr)) {
+      return await this.app.redis.get(addr);
+    }
+
+    if (fuzzy_search) {
+      const addr_obj = AddressParser.parseAddress(addr);
+      const addr_detail = addr_obj.name;// omit province and city, only compare detail address
+      const keys = await this.app.redis.keys('*');
+      for (const k of keys) {
+        if (this.compareAddressStrings(addr_detail, k)) {
+          return this.app.datacache.getDataByKey(k);
+        }
+        continue;
+
+      }
+
+      return null;
+    }
+    return null;
+
+  }
+
+
+  /**
+   * compare two strings according to the difference index return by 'leven'
+   * @param str1 address1
+   * @param str2 address2
+   * @return {boolean}
+   */
   private compareAddressStrings(str1, str2) {
     const len = str1.length > str2.length ? str1.length : str2.length;
     const match_index = (len - leven(str1, str2)) * 1.0;
